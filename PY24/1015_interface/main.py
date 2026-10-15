@@ -6,3 +6,23 @@
 from abc import ABC, abstractmethod
 
 class Player(ABC):
+    @abstractmethod
+    def play(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
+        pass
+
+
+
+class MusicPlayer(Player):
+    def play(self):
+        print("stop")
+
+    def stop(self):
+        print('stop')
+
+mp = MusicPlayer()
+mp.play()
+mp.stop()
