@@ -9,7 +9,7 @@ console.log("hello.js を実行しました");
 var message = "こんにちは";
 
 // TODO: 3. 変数 message の内容をコンソール表示
-console.log(message);
+console.log(message)
 
 // ターミナルでhello.js を実行
 // node hello.js
