@@ -5,3 +5,4 @@
 # 実処理は一切ない。
 from abc import ABC, abstractmethod
 
+class Player(ABC):
