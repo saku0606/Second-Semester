@@ -1,9 +1,7 @@
-class slime:
-    def __init__(self, iti,run):
+class Slime:
+    def __init__(self, iti):
         self.iti = 0
-        self.run = run
 
-    def get_iti(self):
-        return self.iti
-    def get_run(self):
-        return self.run
+slime1 = Slime(0)
+
+print(slime1.iti)
