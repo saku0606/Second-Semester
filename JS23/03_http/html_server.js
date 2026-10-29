@@ -13,7 +13,7 @@ const PORT = 3000;
 // 現在のディレクトリパス
 const __dirname = path.resolve();
 
-// 公開ディレクトリ
+// 公開ディレクトリ: Document Root
 const publicDir = path.join(__dirname, "public");
 
 // MIMEタイプマップ
@@ -34,13 +34,16 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
     // TODO: URLパース: url.parse()
     // URLパラメータを排除
-    const parsed = {};
+    const parsed = url.parse(req.url)
     // TODO: パス名取得: pathname
-    let pathname = "";
+    let pathname = parsed.pathname;
     // パス名ログ出力
     console.log(`pathname: ${pathname}`);
 
     // TODO: パスが「 / 」なら pathname = /index.html
+    if (pathname === "/") {
+        pathname = "/index.html";
+    }
 
     // 番外編: /api/list アクセス時: execLS()
 
@@ -50,9 +53,9 @@ const server = http.createServer((req, res) => {
     // ファイル存在チェック: fs.existsSync()
     if (!fs.existsSync(filePath)) {
         // TODO: 404 Not Found
-        // res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        // res.end("404 Not Found\n");
-        // return;
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("404 Not Found\n");
+        return;
     }
 
     // TODO: ファイル存在チェック
@@ -76,8 +79,10 @@ const server = http.createServer((req, res) => {
         // }
 
         // TODO: 200 OK
+        res.writeHead(200, { "Content-Type": mime });
 
         // TODO: ファイルの中身をレスポンス
+        res.end(data);
     });
 });
 
