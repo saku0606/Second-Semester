@@ -9,4 +9,4 @@ class Slime:
 slime1 = Slime(0)
 
 print(slime1.iti)
-print(slime1.run()) 
+print(slime1.run()) 1
