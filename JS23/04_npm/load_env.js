@@ -1,8 +1,8 @@
 // TODO: dotenvインポート
-// const dotenv = require('dotenv');
+const dotenv = require('dotenv');
 
 // TODO: dotenvの設定をロード: config()
-
+dotenv.config();
 // TODO: 環境変数の取得
 const HOST = "";
 const PORT = "";
