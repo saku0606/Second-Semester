@@ -42,7 +42,7 @@ while True: # ブーリアン
 # Option1 レース前のカウントダウン（1秒間隔）
 print("[On your mark]")
 for count in [3, 2, 1]:
-    # 先生の補足より：
+    # teamsに書いてあったやつ
     # sleepを掛けても処理が止まらない場合、以下の様に、
     # printにflush=True指定が必要となります。
     # 理由：コンソールにバッファ(一時的に出力を蓄えておく)機能があり、
