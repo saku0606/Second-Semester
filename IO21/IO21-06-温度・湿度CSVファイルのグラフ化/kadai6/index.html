@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web版 温度・湿度監視システム</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --text: #1d2433;
+    --sub: #6b7385;
+    --line: #dde3ec;
+    --head: #14213d;
+    --temp: #e8590c;
+    --humi: #1c7ed6;
+    --ok: #2fb344;
+    --warn: #f59f00;
+    --err: #e03131;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Noto Sans JP", "Meiryo", sans-serif;
+  }
+  header {
+    background: var(--head);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: 0.05em; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #888; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(47, 179, 68, 0.3); }
+  .dot.warn { background: var(--warn); }
+  .dot.err { background: var(--err); }
+  main { max-width: 1160px; margin: 0 auto; padding: 20px 16px 32px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(20, 33, 61, 0.1);
+  }
+  .card { padding: 14px 18px; border-top: 4px solid var(--line); }
+  .card.temp { border-top-color: var(--temp); }
+  .card.humi { border-top-color: var(--humi); }
+  .card.di { border-top-color: var(--ok); }
+  .card .label { font-size: 13px; color: var(--sub); }
+  .card .value { font-size: 40px; font-weight: bold; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .card .value small { font-size: 16px; margin-left: 4px; color: var(--sub); }
+  .card.temp .value { color: var(--temp); }
+  .card.humi .value { color: var(--humi); }
+  .card .value.time { font-size: 24px; padding: 10px 0 6px; }
+  .card .sub { font-size: 13px; color: var(--sub); }
+  .up { color: var(--err); }
+  .down { color: var(--humi); }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 22px 0 10px;
+  }
+  .toolbar .title { font-weight: bold; margin-right: 6px; }
+  .toolbar button {
+    border: 1px solid #c5cdd9;
+    background: #fff;
+    color: var(--text);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .toolbar button.active { background: var(--head); border-color: var(--head); color: #fff; }
+  .toolbar .countdown { margin-left: auto; font-size: 13px; color: var(--sub); }
+  .chart-box { height: 420px; padding: 14px; }
+  .bottom {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .bottom .panel { padding: 14px 18px; }
+  .bottom h2 { margin: 0 0 8px; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { color: var(--sub); font-weight: normal; }
+  .latest { max-height: 260px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Web版 温度・湿度監視システム</h1>
+  <div class="status"><span id="dot" class="dot"></span><span id="status">読み込み中...</span></div>
+</header>
+
+<main>
+  <section class="cards">
+    <div class="panel card temp">
+      <div class="label">現在の温度</div>
+      <div class="value"><span id="nowTemp">--.-</span><small>℃</small></div>
+      <div class="sub">前回比 <span id="diffTemp">--</span></div>
+    </div>
+    <div class="panel card humi">
+      <div class="label">現在の湿度</div>
+      <div class="value"><span id="nowHumi">--.-</span><small>%</small></div>
+      <div class="sub">前回比 <span id="diffHumi">--</span></div>
+    </div>
+    <div class="panel card di">
+      <div class="label">不快指数</div>
+      <div class="value"><span id="di">--.-</span></div>
+      <div class="sub" id="diLabel">--</div>
+    </div>
+    <div class="panel card">
+      <div class="label">最終計測時刻</div>
+      <div class="value time" id="lastTime">----/--/-- --:--:--</div>
+      <div class="sub">記録件数 <span id="total">--</span> 件</div>
+    </div>
+  </section>
+
+  <nav class="toolbar">
+    <span class="title">表示期間</span>
+    <button data-min="30">30分</button>
+    <button data-min="60" class="active">1時間</button>
+    <button data-min="360">6時間</button>
+    <button data-min="1440">24時間</button>
+    <button data-min="0">全期間</button>
+    <span class="countdown">次の自動更新まで <span id="countdown">10</span> 秒</span>
+  </nav>
+
+  <section class="panel chart-box"><canvas id="chart"></canvas></section>
+
+  <section class="bottom">
+    <div class="panel">
+      <h2>表示期間の統計</h2>
+      <table>
+        <thead><tr><th></th><th>最高</th><th>最低</th><th>平均</th></tr></thead>
+        <tbody>
+          <tr><td>温度 (℃)</td><td id="tMax">--</td><td id="tMin">--</td><td id="tAvg">--</td></tr>
+          <tr><td>湿度 (%)</td><td id="hMax">--</td><td id="hMin">--</td><td id="hAvg">--</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>最新の計測データ（10件）</h2>
+      <div class="latest">
+        <table>
+          <thead><tr><th>計測時刻</th><th>温度 (℃)</th><th>湿度 (%)</th></tr></thead>
+          <tbody id="latest"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const REFRESH_SEC = 10;
+  const STALE_SEC = 180;
+  let minutes = 60;
+  let remain = REFRESH_SEC;
+  let multiDay = false;
+
+  const $ = id => document.getElementById(id);
+
+  const chart = new Chart($('chart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: '温度 (℃)',
+          data: [],
+          yAxisID: 'yTemp',
+          borderColor: '#e8590c',
+          backgroundColor: 'rgba(232, 89, 12, 0.12)',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: '湿度 (%)',
+          data: [],
+          yAxisID: 'yHumi',
+          borderColor: '#1c7ed6',
+          backgroundColor: 'rgba(28, 126, 214, 0.08)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: 10,
+            maxRotation: 0,
+            callback: function (value) {
+              const s = this.getLabelForValue(value);
+              return multiDay ? s.slice(5, 16).replace('-', '/') : s.slice(11, 16);
+            },
+          },
+        },
+        yTemp: {
+          position: 'left',
+          suggestedMin: 15,
+          suggestedMax: 30,
+          title: { display: true, text: '温度 (℃)' },
+        },
+        yHumi: {
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: { display: true, text: '湿度 (%)' },
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+
+  function discomfort(t, h) {
+    return 0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3;
+  }
+
+  function discomfortLabel(di) {
+    if (di < 55) return '寒い';
+    if (di < 60) return '肌寒い';
+    if (di < 65) return '何も感じない';
+    if (di < 70) return '快い';
+    if (di < 75) return '暑くない';
+    if (di < 80) return 'やや暑い';
+    if (di < 85) return '暑くて汗が出る';
+    return '暑くてたまらない';
+  }
+
+  function showDiff(id, values) {
+    const n = values.length;
+    const el = $(id);
+    if (n < 2) {
+      el.textContent = '--';
+      el.className = '';
+      return;
+    }
+    const d = values[n - 1] - values[n - 2];
+    el.textContent = (d > 0 ? '▲ ' : d < 0 ? '▼ ' : '± ') + Math.abs(d).toFixed(1);
+    el.className = d > 0 ? 'up' : d < 0 ? 'down' : '';
+  }
+
+  function showStats(prefix, values) {
+    if (values.length === 0) {
+      ['Max', 'Min', 'Avg'].forEach(k => $(prefix + k).textContent = '--');
+      return;
+    }
+    const sum = values.reduce((a, b) => a + b, 0);
+    $(prefix + 'Max').textContent = Math.max(...values).toFixed(1);
+    $(prefix + 'Min').textContent = Math.min(...values).toFixed(1);
+    $(prefix + 'Avg').textContent = (sum / values.length).toFixed(1);
+  }
+
+  function showLatest(data) {
+    const rows = [];
+    for (let i = data.time.length - 1; i >= 0 && rows.length < 10; i--) {
+      rows.push('<tr><td>' + data.time[i] + '</td><td>' + data.temp[i].toFixed(1) +
+                '</td><td>' + data.humi[i].toFixed(1) + '</td></tr>');
+    }
+    $('latest').innerHTML = rows.join('');
+  }
+
+  function setStatus(text, state) {
+    $('status').textContent = text;
+    $('dot').className = 'dot ' + state;
+  }
+
+  async function update() {
+    try {
+      const res = await fetch('cgi-bin/data.py?min=' + minutes, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const n = data.time.length;
+      multiDay = n > 0 && data.time[0].slice(0, 10) !== data.time[n - 1].slice(0, 10);
+      chart.data.labels = data.time;
+      chart.data.datasets[0].data = data.temp;
+      chart.data.datasets[1].data = data.humi;
+      chart.data.datasets.forEach(ds => ds.pointRadius = n <= 60 ? 3 : 0);
+      chart.update();
+
+      $('total').textContent = data.total;
+      showStats('t', data.temp);
+      showStats('h', data.humi);
+      showLatest(data);
+
+      if (n === 0) {
+        setStatus('データがありません', 'warn');
+        return;
+      }
+
+      const t = data.temp[n - 1];
+      const h = data.humi[n - 1];
+      const di = discomfort(t, h);
+      $('nowTemp').textContent = t.toFixed(1);
+      $('nowHumi').textContent = h.toFixed(1);
+      $('di').textContent = di.toFixed(1);
+      $('diLabel').textContent = discomfortLabel(di);
+      $('lastTime').textContent = data.time[n - 1].replace(/-/g, '/');
+      showDiff('diffTemp', data.temp);
+      showDiff('diffHumi', data.humi);
+
+      const age = (Date.now() - new Date(data.time[n - 1].replace(' ', 'T'))) / 1000;
+      if (age > STALE_SEC) {
+        setStatus('計測が止まっている可能性があります', 'warn');
+      } else {
+        setStatus('計測中（1分ごと）', 'ok');
+      }
+    } catch (e) {
+      setStatus('データ取得エラー：' + e.message, 'err');
+    }
+  }
+
+  document.querySelectorAll('.toolbar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      minutes = Number(btn.dataset.min);
+      remain = REFRESH_SEC;
+      $('countdown').textContent = remain;
+      update();
+    });
+  });
+
+  setInterval(() => {
+    remain--;
+    if (remain <= 0) {
+      remain = REFRESH_SEC;
+      update();
+    }
+    $('countdown').textContent = remain;
+  }, 1000);
+
+  update();
+</script>
+</body>
+</html>
