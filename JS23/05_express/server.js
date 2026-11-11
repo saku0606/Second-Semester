@@ -55,6 +55,13 @@ app.get('/test', (req, res) => {
     res.send(message);
 });
 
+// Flaskの場合
+// @app.route('/test', methods=['GET'])
+// def test():
+//     print("ルーティング: /test")
+//     message = 'Hello, Express!'
+//     return message
+
 // TODO: GET /
 // /public/home.html
 
