@@ -49,11 +49,11 @@ let cartItems = [];
 // ルーティング
 // ------------------------
 // TODO: GET /test
-// app.get('/test', (req, res) => {
-//     console.log("ルーティング: /test");
-//     const message = 'Hello, Express!';
-//     res.send(message);
-// });
+app.get('/test', (req, res) => {
+    console.log("ルーティング: /test");
+    const message = 'Hello, Express!';
+    res.send(message);
+});
 
 // TODO: GET /
 // /public/home.html
