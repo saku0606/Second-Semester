@@ -1,11 +1,12 @@
 // TODO: uuid インポート（エイリアス）: v4
-// const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
-// TODO: UUID生成: uuidv4
-const id = "";
+// TODO: UUID生成: uuidv4()
+const id = uuidv4()
 const name = "Alice";
 const email = "alice@test.com";
 
 // TODO: オブジェクトリテラルで代入
-const user = {};
+const user = { id, name, email };
+// const user = { id: id, name: name, email: name };
 console.table(user);
