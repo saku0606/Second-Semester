@@ -28,19 +28,19 @@ const app = express()
 // ミドルウェア設定
 // カスタムミドルウェア: すべてのリクエストでログ出力
 // TODO: app.use() で登録
-// app.use((req, res, next) => {
-//     console.log(`ミドルウェア: ${req.method} ${req.url}`);
-//     next();
-// });
+app.use((req, res, next) => {
+    console.log(`ミドルウェア: ${req.method} ${req.url}`);
+    next();
+});
 
 // TODO: JSONボディパーサー
-// app.use(express.json());
+app.use(express.json());
 
 // TODO: URLエンコード: www-form-urlencoded ボディパーサー
-// app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 // TODO: 静的ファイルの公開: /public
-// app.use(express.static(__dirname + '/public'));
+app.use(express.static(__dirname + '/public'));
 
 // カート情報
 let cartItems = [];
@@ -64,19 +64,55 @@ app.get('/test', (req, res) => {
 
 // TODO: GET /
 // /public/home.html
+app.get('/', (req, res) => {
+    console.log("ルーティング: /");
+    // public/home.html の中身を返す
+    res.sendFile(__dirname + '/public/home.html');
+});
 
 // TODO: GET /info
+app.get('/info', (req, res) => {
+    console.log("ルーティング: /info");
+    const message = 'ここは情報ページです';
+    res.send(message);
+});
 
 // TODO: GET /about
 // /public/about.html
+app.get('/about', (req, res) => {
+    console.log("ルーティング: /about");
+    // public/about.html の中身を返す
+    res.sendFile(__dirname + '/public/about.html');
+});
 
 // TODO: GET /search  => keyword クエリパラメータ対応
 // /public/home.html
+app.get('/search', (req, res) => {
+    console.log("ルーティング: /search");
+    if (req.query.keyword) {
+        const keyword = req.query.keyword;
+        console.log("検索キーワード: " + keyword);
+    }
+    // public/home.html の中身を返す
+    res.sendFile(__dirname + '/public/home.html');
+});
 
 // TODO GET /product/:id  => id パスパラメータ対応
 // /public/product.html
+app.get('/product/:id', (req, res) => {
+    const id = req.params.id;
+    console.log("ルーティング: /product/" + id);
+    // public/product.html の中身を返す
+    res.sendFile(__dirname + '/public/product.html');
+});
 
 // TODO: POST /save
+app.post('/save', (req, res) => {
+    console.log("ルーティング: /save");
+    const message = 'POSTリクエストを受け取りました';
+    res.send(message);
+});
+
 
 // ------------------------
 // API
@@ -86,7 +122,7 @@ app.get('/api/product/list', (req, res) => {
     console.log("ルーティング: api/product/list");
 
     // TODO: 商品データを読み込む
-    const products = {};
+    const products = fetchProducts()
     const data = { products };
     // 商品データを返す
     res.json(data);
@@ -95,7 +131,7 @@ app.get('/api/product/list', (req, res) => {
 // GET: エンドポイント: /api/product/show/:id
 app.get('/api/product/show/:id', (req, res) => {
     // TODO: 商品IDを取得して数値に変換
-    const productId = 0;
+    const productId = req.params.id
     console.log(`ルーティング: /api/product/show/${productId}`);
 
     // 商品データを取得
@@ -104,7 +140,7 @@ app.get('/api/product/show/:id', (req, res) => {
         // 商品が見つからない場合のエラーハンドリング
         return res.status(404).json({ error: "Product not found" });
     }
-    // 商品データを返す
+    // 商品 JSON データを返す
     res.json(product);
 });
 
@@ -113,7 +149,7 @@ app.get('/api/search', (req, res) => {
     console.log("ルーティング: api/search");
 
     // TODO: 検索キーワードを取得
-    const keyword = '';
+    const keyword = req.query.keyword
     console.log("検索キーワード: " + keyword);
 
     const products = searchProducts(keyword);
