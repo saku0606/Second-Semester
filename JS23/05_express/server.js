@@ -164,18 +164,21 @@ app.get('/api/product/csv_download', (req, res) => {
     // CSV ファイルのパスを指定
     const csvFilePath = __dirname + '/data/products.csv';
     // TODO: CSV ファイルをダウンロード: download()
+    res.download(csvFilePath)
 });
 
 // POST: エンドポイント: /api/cart/add/:id : id パスパラメータ対応
 app.post('/api/cart/add/:id', (req, res) => {
+    // 商品のID をパスパラメーターから取得
     const id = req.params.id;
     console.log(`ルーティング: api/cart/add/${id}`);
-
+    // 商品検索
     const product = findProductById(id);
 
     if (product) {
         // TODO: カートに追加: スプレッド構文で cartItems に product 追加
-        cartItems = [];
+        // cartItems.push(product);
+        cartItems = [...cartItems, product]
     }
 
     const data = { cartItems };
